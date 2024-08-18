@@ -1,10 +1,7 @@
-package main
+package app
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -16,25 +13,19 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-
 	"sigs.k8s.io/kube-scheduler-simulator/simulator/config"
 	"sigs.k8s.io/kube-scheduler-simulator/simulator/server"
 	"sigs.k8s.io/kube-scheduler-simulator/simulator/server/di"
 )
 
-func main() {
-	if err := startSimulator(); err != nil {
-		klog.Fatalf("failed with error on running simulator: %+v", err)
-	}
-}
-
-// entry point.
-func startSimulator() error {
-	cfg, err := config.NewConfig()
-	if err != nil {
-		return xerrors.Errorf("get config: %w", err)
-	}
-
+// StartSimulator starts simulator and needed k8s components.
+// It should be called from the entry point basically, or from the integration test.
+//
+// startSimulator starts simulator and needed k8s components.
+//
+//nolint:funlen,cyclop
+//nolint:funlen,cyclop
+func StartSimulator(ctx context.Context, cfg *config.Config) error {
 	restCfg := &rest.Config{
 		Host: cfg.KubeAPIServerURL,
 		TLSClientConfig: rest.TLSClientConfig{
@@ -70,7 +61,7 @@ func startSimulator() error {
 		return xerrors.Errorf("create an etcd client: %w", err)
 	}
 
-	timeoutctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	timeoutctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 	err = wait.PollUntilContextCancel(timeoutctx, time.Second*5, true, func(ctx context.Context) (bool, error) {
 		_, err := client.CoreV1().Namespaces().Get(context.Background(), "kube-system", metav1.GetOptions{})
@@ -100,28 +91,26 @@ func startSimulator() error {
 	// from the target cluster that indicated by the `KUBECONFIG`.
 	if cfg.ExternalImportEnabled {
 		// This must be called after `StartScheduler`
-		if err := dic.OneshotClusterResourceImporter().ImportClusterResources(context.Background()); err != nil { // TODO: set context
+		if err := dic.OneshotClusterResourceImporter().ImportClusterResources(ctx); err != nil {
 			return xerrors.Errorf("import from the target cluster: %w", err)
 		}
 	}
 
 	if cfg.ResourceSyncEnabled {
 		// Start the resource syncer to sync resources from the target cluster.
-		go dic.ResourceSyncer().Run(context.Background()) // TODO: set context
+		go dic.ResourceSyncer().Run(ctx)
 	}
 
 	// start simulator server
 	s := server.NewSimulatorServer(cfg, dic)
-	shutdownFn, err := s.Start(cfg.Port)
+	shutdownFn3, err := s.Start(cfg.Port)
 	if err != nil {
 		return xerrors.Errorf("start simulator server: %w", err)
 	}
-	defer shutdownFn()
+	defer shutdownFn3()
 
-	// wait the signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, os.Interrupt)
-	<-quit
+	// Block until ctx is canceled
+	<-ctx.Done()
 
 	return nil
 }
