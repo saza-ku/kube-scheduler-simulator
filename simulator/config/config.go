@@ -76,9 +76,10 @@ func NewConfig() (*Config, error) {
 	}
 
 	externalimportenabled := getExternalImportEnabled()
+	resourceSyncEnabled := getResourceSyncEnabled()
 	externalKubeClientCfg := &rest.Config{}
-	if externalimportenabled {
-		externalKubeClientCfg, err = GetKubeClientConfig()
+	if externalimportenabled || resourceSyncEnabled {
+		externalKubeClientCfg, err = clientcmd.BuildConfigFromFlags("", configYaml.KubeConfig)
 		if err != nil {
 			return nil, xerrors.Errorf("get kube clientconfig: %w", err)
 		}
@@ -100,6 +101,7 @@ func NewConfig() (*Config, error) {
 		ExternalImportEnabled:    externalimportenabled,
 		ExternalKubeClientCfg:    externalKubeClientCfg,
 		ExternalSchedulerEnabled: externalSchedEnabled,
+		ResourceSyncEnabled:      resourceSyncEnabled,
 	}, nil
 }
 
@@ -257,6 +259,18 @@ func getExternalImportEnabled() bool {
 	}
 	isExternalImportEnabled, _ := strconv.ParseBool(isExternalImportEnabledString)
 	return isExternalImportEnabled
+}
+
+// getResourceSyncEnabled reads RESOURCE_SYNC_ENABLED and convert it to bool
+// if empty from the config file.
+// This function will return `true` if `RESOURCE_SYNC_ENABLED` is "1".
+func getResourceSyncEnabled() bool {
+	resourceSyncEnabledString := os.Getenv("RESOURCE_SYNC_ENABLED")
+	if resourceSyncEnabledString == "" {
+		resourceSyncEnabledString = strconv.FormatBool(configYaml.ResourceSyncEnabled)
+	}
+	resourceSyncEnabled, _ := strconv.ParseBool(resourceSyncEnabledString)
+	return resourceSyncEnabled
 }
 
 func decodeSchedulerCfg(buf []byte) (*configv1.KubeSchedulerConfiguration, error) {

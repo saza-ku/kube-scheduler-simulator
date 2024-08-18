@@ -65,5 +65,5 @@ type SimulatorConfiguration struct {
 	// is used.
 	ExternalSchedulerEnabled bool `json:"externalSchedulerEnabled,omitempty"`
 
-	ResourceSyncEnabled bool
+	ResourceSyncEnabled bool `json:"resourceSyncEnabled,omitempty"`
 }
