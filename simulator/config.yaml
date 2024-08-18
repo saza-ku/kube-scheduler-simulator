@@ -18,11 +18,12 @@ etcdURL: "http://127.0.0.1:2379"
 # origin for CorsAllowedOriginList
 corsAllowedOriginList:
   - "http://localhost:3000"
+  - "http://saza-m2:3000"
 
 # This is for the beta feature "Importing cluster's resources".
 # This variable is used to find Kubeconfig required to access your
 # cluster for importing resources to scheduler simulator.
-kubeConfig: ""
+kubeConfig: "./kubeconfig"
 
 # This is the url of kube-apiserver.
 # This variable is used to connect to the user cluster's kube-apiserver.
@@ -37,7 +38,7 @@ kubeSchedulerConfigPath: ""
 # This variable indicates whether the simulator will
 # import resources from an user cluster's or not.
 # Note, this is still a beta feature.
-externalImportEnabled: false
+externalImportEnabled: true
 
 # This variable indicates whether an external scheduler
 # is used.

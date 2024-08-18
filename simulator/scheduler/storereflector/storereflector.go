@@ -5,6 +5,7 @@ package storereflector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
@@ -83,6 +84,8 @@ func (s *reflector) storeAllResultToPodFunc(client clientset.Interface) func(int
 			klog.ErrorS(nil, "Cannot convert to *corev1.Pod", "obj", newObj)
 			return
 		}
+
+		fmt.Printf("Spec: %#v\n", pod.Spec)
 
 		updateFunc := func() (bool, error) {
 			// Fetch the latest Pod object and apply changes to it. Otherwise, our update may be

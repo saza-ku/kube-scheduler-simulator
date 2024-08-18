@@ -79,7 +79,7 @@ func CreateOptionForOutOfTreePlugin(outOfTreePluginRegistry runtime.Registry, pl
 	if err != nil {
 		return nil, nil, xerrors.Errorf("convert scheduler config to apply: %w", err)
 	}
-	kubeconfig, err := simulatorconfig.GetKubeClientConfig()
+	kubeconfig, err := simulatorconfig.GetKubeClientConfig("")
 	if err != nil {
 		return nil, nil, xerrors.Errorf("get kubeconfig: %w", err)
 	}

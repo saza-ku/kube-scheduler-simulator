@@ -154,7 +154,7 @@ func loadKubeSchedulerConfig(configFile *string) (*v1.KubeSchedulerConfiguration
 
 // loadKubeConfig loads kubeConfig.
 func loadKubeConfig(master *string, internalCfg *config.KubeSchedulerConfiguration) (*clientset.Clientset, error) {
-	kubeconfig, err := simulatorconfig.GetKubeClientConfig()
+	kubeconfig, err := simulatorconfig.GetKubeClientConfig("")
 	if err != nil {
 		return nil, xerrors.Errorf("get kubeconfig: %w", err)
 	}

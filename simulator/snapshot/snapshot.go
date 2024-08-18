@@ -495,14 +495,19 @@ func (s *Service) applyPods(ctx context.Context, r *ResourcesForLoad, eg *util.S
 		pod := r.Pods[i]
 		if err := eg.Go(func() error {
 			pod.ObjectMetaApplyConfiguration.UID = nil
+			if pod.Spec.ServiceAccountName != nil {
+				*pod.Spec.ServiceAccountName = "default"
+			}
 			pod.WithAPIVersion("v1").WithKind("Pod")
-			_, err := s.client.CoreV1().Pods(*pod.Namespace).Apply(ctx, &pod, metav1.ApplyOptions{Force: true, FieldManager: "simulator"})
+			klog.Infof("Applying pod %s\n", *pod.Name)
+			res, err := s.client.CoreV1().Pods(*pod.Namespace).Apply(ctx, &pod, metav1.ApplyOptions{Force: true, FieldManager: "simulator"})
 			if err != nil {
 				if !opts.ignoreErr {
 					return xerrors.Errorf("apply Pod: %w", err)
 				}
 				klog.Errorf("failed to apply Pod: %v", err)
 			}
+			klog.Infof("Applied pod %#v\n", res)
 			return nil
 		}); err != nil {
 			return xerrors.Errorf("start error group: %w", err)

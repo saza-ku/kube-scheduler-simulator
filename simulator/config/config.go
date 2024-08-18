@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"strconv"
@@ -76,7 +77,7 @@ func NewConfig() (*Config, error) {
 	externalimportenabled := getExternalImportEnabled()
 	externalKubeClientCfg := &rest.Config{}
 	if externalimportenabled {
-		externalKubeClientCfg, err = GetKubeClientConfig()
+		externalKubeClientCfg, err = GetKubeClientConfig(configYaml.KubeConfig)
 		if err != nil {
 			return nil, xerrors.Errorf("get kube clientconfig: %w", err)
 		}
@@ -275,12 +276,13 @@ func decodeSchedulerCfg(buf []byte) (*configv1.KubeSchedulerConfiguration, error
 	return sc, nil
 }
 
-func GetKubeClientConfig() (*rest.Config, error) {
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
-	clientConfig, err := kubeConfig.ClientConfig()
+func GetKubeClientConfig(kubeConfigPath string) (*rest.Config, error) {
+	content, err := os.ReadFile(kubeConfigPath)
 	if err != nil {
-		return nil, xerrors.Errorf("get client config: %w", err)
+		return nil, xerrors.Errorf("read kubeconfig file: %w", err)
 	}
-	return clientConfig, nil
+
+	fmt.Printf("kubeconfig content: %s\n", content)
+
+	return clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 }
