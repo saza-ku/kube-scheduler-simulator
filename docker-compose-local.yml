@@ -57,6 +57,8 @@ services:
     image: registry.k8s.io/kwok/cluster:v0.5.1-k8s.v1.29.0
     container_name: debug-real-cluster
     restart: always
+    healthcheck:
+      test: "kwokctl kubectl get nodes"
     ports:
       - "3132:3132"
     environment:
@@ -71,12 +73,12 @@ services:
     volumes:
       - ./simulator/kubeconfig:/.kube/config
       - ./debug/manifests.yaml:/manifests.yaml
-    command: apply -f /manifests.yaml || sleep 200
+    command: apply -f /manifests.yaml
     networks:
       - simulator-internal-network
     depends_on:
       debug-real-cluster:
-        condition: "service_started"
+        condition: "service_healthy"
         required: true
     profiles:
       - debug

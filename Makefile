@@ -79,3 +79,7 @@ docker_down:
 .PHONY: docker_down_local
 docker_down_local:
 	docker compose -f docker-compose-local.yml down
+
+.PHONY: docker_down_debug
+docker_down_debug:
+	docker compose -f docker-compose-local.yml --profile debug down
