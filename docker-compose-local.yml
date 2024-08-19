@@ -25,6 +25,10 @@ services:
     tty: true
     networks:
       - simulator-internal-network
+    depends_on:
+      debug-real-cluster:
+        condition: "service_started"
+        required: false
   simulator-frontend:
     image: simulator-frontend
     restart: always
@@ -49,6 +53,18 @@ services:
       - KWOK_KUBE_APISERVER_PORT=3131
     networks:
       - simulator-internal-network
+  debug-real-cluster:
+    image: registry.k8s.io/kwok/cluster:v0.5.1-k8s.v1.29.0
+    container_name: debug-real-cluster
+    restart: always
+    ports:
+      - "3132:3132"
+    environment:
+      - KWOK_KUBE_APISERVER_PORT=3132
+    networks:
+      - simulator-internal-network
+    profiles:
+      - debug
 networks:
   simulator-internal-network:
     driver: bridge

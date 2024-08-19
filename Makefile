@@ -68,6 +68,10 @@ docker_up_local:
 .PHONY: docker_build_and_up
 docker_build_and_up: docker_build docker_up_local
 
+.PHONY: docker_debug
+docker_debug: docker_build
+	docker compose -f docker-compose-local.yml --profile debug up -d
+
 .PHONY: docker_down
 docker_down:
 	docker compose down --volumes
