@@ -44,6 +44,10 @@ kubeSchedulerConfigPath: ""
 # Note, this is still a beta feature.
 externalImportEnabled: false
 
+# This variable indicates whether the simulator will
+# sync resources from an user cluster's or not.
+resourceSyncEnabled: false
+
 # This variable indicates whether an external scheduler
 # is used.
 externalSchedulerEnabled: false
