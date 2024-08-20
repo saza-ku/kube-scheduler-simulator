@@ -31,10 +31,12 @@ type Config struct {
 	KubeAPIServerURL      string
 	EtcdURL               string
 	CorsAllowedOriginList []string
-	// ExternalImportEnabled indicates whether the simulator will import resources from an target cluster or not.
+	// ExternalImportEnabled indicates whether the simulator will import resources from an target cluster once
+	// when it's started.
 	ExternalImportEnabled bool
+	ResourceSyncEnabled   bool
 	// ExternalKubeClientCfg is KubeConfig to get resources from external cluster.
-	// This field is non-empty only when ExternalImportEnabled == true.
+	// This field should be set when ExternalImportEnabled == true.
 	ExternalKubeClientCfg *rest.Config
 	InitialSchedulerCfg   *configv1.KubeSchedulerConfiguration
 	// ExternalSchedulerEnabled indicates whether an external scheduler is enabled.
@@ -74,8 +76,9 @@ func NewConfig() (*Config, error) {
 	}
 
 	externalimportenabled := getExternalImportEnabled()
+	resourceSyncEnabled := getResourceSyncEnabled()
 	externalKubeClientCfg := &rest.Config{}
-	if externalimportenabled {
+	if externalimportenabled || resourceSyncEnabled {
 		externalKubeClientCfg, err = clientcmd.BuildConfigFromFlags("", configYaml.KubeConfig)
 		if err != nil {
 			return nil, xerrors.Errorf("get kube clientconfig: %w", err)
@@ -98,6 +101,7 @@ func NewConfig() (*Config, error) {
 		ExternalImportEnabled:    externalimportenabled,
 		ExternalKubeClientCfg:    externalKubeClientCfg,
 		ExternalSchedulerEnabled: externalSchedEnabled,
+		ResourceSyncEnabled:      resourceSyncEnabled,
 	}, nil
 }
 
@@ -255,6 +259,18 @@ func getExternalImportEnabled() bool {
 	}
 	isExternalImportEnabled, _ := strconv.ParseBool(isExternalImportEnabledString)
 	return isExternalImportEnabled
+}
+
+// getResourceSyncEnabled reads RESOURCE_SYNC_ENABLED and convert it to bool
+// if empty from the config file.
+// This function will return `true` if `RESOURCE_SYNC_ENABLED` is "1".
+func getResourceSyncEnabled() bool {
+	resourceSyncEnabledString := os.Getenv("RESOURCE_SYNC_ENABLED")
+	if resourceSyncEnabledString == "" {
+		resourceSyncEnabledString = strconv.FormatBool(configYaml.ResourceSyncEnabled)
+	}
+	resourceSyncEnabled, _ := strconv.ParseBool(resourceSyncEnabledString)
+	return resourceSyncEnabled
 }
 
 func decodeSchedulerCfg(buf []byte) (*configv1.KubeSchedulerConfiguration, error) {

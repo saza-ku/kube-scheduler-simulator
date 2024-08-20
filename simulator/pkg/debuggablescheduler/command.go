@@ -48,8 +48,9 @@ func NewSchedulerCommand(opts ...Option) (*cobra.Command, func(), error) {
 }
 
 type options struct {
-	outOfTreeRegistry runtime.Registry
-	pluginExtender    map[string]plugin.PluginExtenderInitializer
+	outOfTreeRegistry   runtime.Registry
+	pluginExtender      map[string]plugin.PluginExtenderInitializer
+	schedulerConfigPath *string
 }
 
 type Option func(opt *options)
@@ -65,5 +66,14 @@ func WithPlugin(pluginName string, factory runtime.PluginFactory) Option {
 func WithPluginExtenders(pluginName string, e plugin.PluginExtenderInitializer) Option {
 	return func(opt *options) {
 		opt.pluginExtender[pluginName] = e
+	}
+}
+
+// WithSchedulerConfigPath creates an Option for the scheduler configuration file path.
+// Usually, the scheduler configuration file path is passed from the command line flag.
+// But, some cases like the integration tests, it is useful to specify the scheduler configuration file path from the implementation, rather than the flag.
+func WithSchedulerConfigPath(schedulerConfigPath string) Option {
+	return func(opt *options) {
+		opt.schedulerConfigPath = &schedulerConfigPath
 	}
 }
