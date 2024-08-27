@@ -1,41 +1,25 @@
 version: "3.7"
 services:
-  simulator-scheduler:
-    image: simulator-scheduler
-    container_name: simulator-scheduler
-    environment:
-      - KUBE_APISERVER_URL=http://simulator-cluster:3131
-      - KUBECONFIG=/root/.kube/kubeconfig.yaml
-    volumes:
-      - ./simulator/docs/sample/debuggable-scheduler/kubeconfig.yaml:/root/.kube/kubeconfig.yaml
-    restart: always
-    tty: true
-    networks:
-      - simulator-internal-network
-  simulator-server:
+  src-simulator-server:
     image: simulator-server
-    container_name: simulator-server
+    container_name: src-simulator-server
     environment:
       - PORT=1212
-      - KUBE_SCHEDULER_SIMULATOR_ETCD_URL=http://simulator-cluster:2379
-      - KUBE_APISERVER_URL=http://simulator-cluster:3131
+      - KUBE_SCHEDULER_SIMULATOR_ETCD_URL=http://src-simulator-cluster:2379
+      - KUBE_APISERVER_URL=http://src-simulator-cluster:3131
     volumes:
-      - ./simulator/config.yaml:/config.yaml
-      - ./simulator/kubeconfig.yaml:/kubeconfig.yaml
+      - ./src-config.yaml:/config.yaml
+      - ./src-kubeconfig.yaml:/kubeconfig.yaml
     ports:
       - "1212:1212"
     restart: always
     tty: true
     networks:
       - simulator-internal-network
-    depends_on:
-      fake-source-cluster:
-        condition: "service_healthy"
-        required: false
-  simulator-frontend:
+  src-simulator-frontend:
     image: simulator-frontend
     restart: always
-    container_name: simulator-frontend
+    container_name: src-simulator-frontend
     environment:
       - HOST=0.0.0.0
       - BASE_URL=http://${SIMULATOR_EXTERNAL_IP:-localhost}:1212
@@ -43,9 +27,9 @@ services:
     ports:
     - "3000:3000"
     tty: true
-  simulator-cluster:
+  src-simulator-cluster:
     image: registry.k8s.io/kwok/cluster:v0.6.0-k8s.v1.30.2
-    container_name: simulator-cluster
+    container_name: src-simulator-cluster
     restart: always
     ports:
       - "3131:3131"
@@ -56,23 +40,47 @@ services:
       - KWOK_KUBE_APISERVER_PORT=3131
     networks:
       - simulator-internal-network
-  fake-source-cluster:
-    image: registry.k8s.io/kwok/cluster:v0.6.0-k8s.v1.30.2
-    container_name: fake-source-cluster
+  dst-simulator-server:
+    image: simulator-server
+    container_name: dst-simulator-server
+    environment:
+      - PORT=1213
+      - KUBE_SCHEDULER_SIMULATOR_ETCD_URL=http://dst-simulator-cluster:2379
+      - KUBE_APISERVER_URL=http://dst-simulator-cluster:3132
+    volumes:
+      - ./dst-config.yaml:/config.yaml
+      - ./dst-kubeconfig.yaml:/kubeconfig.yaml
+    ports:
+      - "1213:1213"
     restart: always
-    healthcheck:
-      test: "kwokctl kubectl get nodes"
-      start_period: 60s
-      start_interval: 1s
-      interval: 600s
+    tty: true
+    networks:
+      - simulator-internal-network
+  dst-simulator-frontend:
+    image: simulator-frontend
+    restart: always
+    container_name: dst-simulator-frontend
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3001
+      - BASE_URL=http://${SIMULATOR_EXTERNAL_IP:-localhost}:1213
+      - KUBE_API_SERVER_URL=http://${SIMULATOR_EXTERNAL_IP:-localhost}:3132
+    ports:
+    - "3001:3001"
+    tty: true
+  dst-simulator-cluster:
+    image: registry.k8s.io/kwok/cluster:v0.6.0-k8s.v1.30.2
+    container_name: dst-simulator-cluster
+    restart: always
     ports:
       - "3132:3132"
+    volumes:
+      - simulator-etcd-data:/var/lib/etcd
+      - ./kwok.yaml:/root/.kwok/kwok.yaml
     environment:
       - KWOK_KUBE_APISERVER_PORT=3132
     networks:
       - simulator-internal-network
-    profiles:
-      - externalImportEnabled
 networks:
   simulator-internal-network:
     driver: bridge
