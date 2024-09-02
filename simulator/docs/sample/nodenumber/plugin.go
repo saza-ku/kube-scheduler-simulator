@@ -59,7 +59,7 @@ func (s *preScoreState) Clone() framework.StateData {
 func (pl *NodeNumber) PreScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodes []*framework.NodeInfo) *framework.Status {
 	klog.InfoS("execute PreScore on NodeNumber plugin", "pod", klog.KObj(pod))
 
-	podNameLastChar := pod.Name[len(pod.Name)-1:]
+	podNameLastChar := pod.Name[0:1]
 	podnum, err := strconv.Atoi(podNameLastChar)
 	if err != nil {
 		// return success even if its suffix is non-number.

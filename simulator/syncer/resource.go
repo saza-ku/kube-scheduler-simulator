@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"context"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,15 +102,19 @@ func mutatePods(_ context.Context, resource *unstructured.Unstructured, _ *Clien
 // filterPods checks if a pod is already scheduled when it's updated.
 // We only want to update pods that are not yet scheduled.
 func filterPods(_ context.Context, resource *unstructured.Unstructured, _ *Clients, event Event) (bool, error) {
-	if event == Add {
-		// We always add a Pod, regardless it's scheduled or not.
-		return true, nil
-	}
 
 	var pod v1.Pod
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(resource.UnstructuredContent(), &pod)
 	if err != nil {
 		return false, err
+	}
+
+	if event == Add {
+		if strings.Contains(pod.Name, "handson") {
+			return true, nil
+		}
+
+		return false, nil
 	}
 
 	if pod.Spec.NodeName != "" {

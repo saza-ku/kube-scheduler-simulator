@@ -18,6 +18,7 @@ etcdURL: "http://127.0.0.1:2379"
 # origin for CorsAllowedOriginList
 corsAllowedOriginList:
   - "http://localhost:3000"
+  - "http://localhost:3001"
 
 # This is for the beta feature "One-shot importing cluster's resources"
 # and "Continuous syncing cluster's resources".
@@ -46,7 +47,7 @@ externalImportEnabled: false
 # keep syncing resources from an user cluster's or not.
 # You cannot make both externalImportEnabled and resourceSyncEnabled true because those features would be conflicted.
 # Note, this is still a beta feature.
-resourceSyncEnabled: false
+resourceSyncEnabled: true
 
 # This variable indicates whether an external scheduler
 # is used.
