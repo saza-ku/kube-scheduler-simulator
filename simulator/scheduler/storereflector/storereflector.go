@@ -57,11 +57,19 @@ func (s *reflector) ResisterResultSavingToInformer(client clientset.Interface, s
 	informerFactory := scheduler.NewInformerFactory(client, 0)
 	// Reflector adds scheduling results when pod is updating.
 	// This is because Extenders doesn't have any phase to hook scheduling finished. (both successfully and non-successfully)
-	_, err := informerFactory.Core().V1().Pods().Informer().AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
+	_, err := informerFactory.Core().V1().Pods().Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		FilterFunc: func(obj interface{}) bool {
+			if pod, ok := obj.(*corev1.Pod); ok {
+				if pod.DeletionTimestamp != nil {
+					return false
+				}
+			}
+			return true
+		},
+		Handler: cache.ResourceEventHandlerFuncs{
 			UpdateFunc: s.storeAllResultToPodFunc(client),
 		},
-	)
+	})
 	if err != nil {
 		return xerrors.Errorf("failed to AddEventHandler of Informer: %w", err)
 	}
@@ -75,7 +83,7 @@ func (s *reflector) ResisterResultSavingToInformer(client clientset.Interface, s
 // storeAllResultToPodFunc returns the function that reflects all results on the pod annotation when the scheduling is finished.
 // It will be used as the even handler of resource updating.
 //
-//nolint:gocognit,cyclop
+//nolint:gocognit,cyclop,funlen
 func (s *reflector) storeAllResultToPodFunc(client clientset.Interface) func(interface{}, interface{}) {
 	return func(_, newObj interface{}) {
 		ctx := context.Background()
@@ -91,6 +99,9 @@ func (s *reflector) storeAllResultToPodFunc(client clientset.Interface) func(int
 			// the shared informer.
 			newPod, err := client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
 				return false, xerrors.Errorf("get pod: %w", err)
 			}
 			if newPod.UID != pod.UID {
@@ -124,6 +135,9 @@ func (s *reflector) storeAllResultToPodFunc(client clientset.Interface) func(int
 
 			_, err = client.CoreV1().Pods(pod.Namespace).Update(ctx, pod, metav1.UpdateOptions{})
 			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
 				// Even though we fetched the latest Pod object, we still might get a conflict
 				// because of a concurrent update. Retrying these conflict errors will usually help
 				// as long as we re-fetch the latest Pod object each time.
